@@ -4,4 +4,8 @@
     <string name="greet_react">Saludar a React</string>
     <string name="kotlin_greeting">Hola desde Kotlin</string>
     <string name="web_load_error">No se pudo abrir el análisis. Comprueba tu conexión y vuelve a abrir ToastLink.</string>
+    <string name="notification_channel">Notificaciones de prueba</string>
+    <string name="notification_body">React envió esta notificación a Android.</string>
+    <string name="notification_sent">Notificación enviada. Revisa el panel de Android.</string>
+    <string name="notification_blocked">Activa las notificaciones de ToastLink en los ajustes de Android.</string>
 </resources>

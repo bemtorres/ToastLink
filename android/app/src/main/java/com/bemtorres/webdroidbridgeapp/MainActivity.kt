@@ -1,8 +1,14 @@
 package com.bemtorres.webdroidbridgeapp
 
+import android.Manifest
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.BatteryManager
+import android.os.Build
 import android.os.Bundle
 import android.view.ViewGroup
 import android.webkit.WebMessage
@@ -16,6 +22,7 @@ import android.webkit.WebViewClient
 import android.widget.Button
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -25,11 +32,24 @@ import java.io.ByteArrayInputStream
 
 private const val WEB_ORIGIN = "https://toastlink.cafeycodigo.org"
 private const val START_PAGE = "$WEB_ORIGIN/analisis/"
+private const val NOTIFICATION_CHANNEL = "toastlink_demo"
+private const val DEMO_NOTIFICATION_ID = 1
 
 class MainActivity : AppCompatActivity() {
     private lateinit var webView: WebView
     private lateinit var greetButton: Button
     private var port: WebMessagePort? = null
+    private var permissionRequestPort: WebMessagePort? = null
+    private val requestNotificationPermission =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            val requestingPort = permissionRequestPort
+            permissionRequestPort = null
+            if (requestingPort != null && requestingPort === port) {
+                if (granted) postDemoNotification()
+                else sendNotificationResult(R.string.notification_blocked)
+            }
+        }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -97,12 +117,13 @@ class MainActivity : AppCompatActivity() {
         val type = request.optString("type")
         if (type == "ready") {
             greetButton.isEnabled = true
-            sendToReact("ready")
+            sendToReact("ready", "notifications", true)
             return
         }
         if (!greetButton.isEnabled) return
 
         when (type) {
+            "showNotification" -> showDemoNotification()
             "showToast" -> {
                 val text = request.optString("message").trim().take(120)
                 if (text.isEmpty()) return
@@ -116,6 +137,55 @@ class MainActivity : AppCompatActivity() {
                 sendToReact("battery", "percent", percent ?: JSONObject.NULL)
             }
         }
+    }
+
+    private fun showDemoNotification() {
+        if (permissionRequestPort != null) {
+            if (permissionRequestPort !== port) sendNotificationResult(R.string.notification_blocked)
+            return
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            permissionRequestPort = port
+            requestNotificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+            return
+        }
+        postDemoNotification()
+    }
+
+    private fun postDemoNotification() {
+        val manager = getSystemService(NotificationManager::class.java)
+        manager.createNotificationChannel(
+            NotificationChannel(
+                NOTIFICATION_CHANNEL,
+                getString(R.string.notification_channel),
+                NotificationManager.IMPORTANCE_DEFAULT
+            )
+        )
+        if (!manager.areNotificationsEnabled() ||
+            manager.getNotificationChannel(NOTIFICATION_CHANNEL)?.importance == NotificationManager.IMPORTANCE_NONE
+        ) {
+            sendNotificationResult(R.string.notification_blocked)
+            return
+        }
+
+        val notification = Notification.Builder(this, NOTIFICATION_CHANNEL)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(getString(R.string.app_name))
+            .setContentText(getString(R.string.notification_body))
+            .build()
+
+        try {
+            manager.notify(DEMO_NOTIFICATION_ID, notification)
+            sendNotificationResult(R.string.notification_sent)
+        } catch (_: SecurityException) {
+            sendNotificationResult(R.string.notification_blocked)
+        }
+    }
+
+    private fun sendNotificationResult(message: Int) {
+        sendToReact("notificationResult", "message", getString(message))
     }
 
     private fun sendToReact(type: String, key: String? = null, value: Any = JSONObject.NULL) {

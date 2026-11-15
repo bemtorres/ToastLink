@@ -14,6 +14,9 @@ function App() {
   const [greeting, setGreeting] = useState("");
   const [battery, setBattery] = useState(null);
   const [batteryPending, setBatteryPending] = useState(false);
+  const [notificationsSupported, setNotificationsSupported] = useState(false);
+  const [notificationPending, setNotificationPending] = useState(false);
+  const [notificationStatus, setNotificationStatus] = useState("");
   const [log, setLog] = useState([]);
   const [connected, setConnected] = useState(false);
   const nextId = useRef(0);
@@ -25,10 +28,16 @@ function App() {
 
   useEffect(() => {
     function receive(event) {
-      const { type, message, percent } = JSON.parse(event.data);
+      const { type, message, percent, notifications } = JSON.parse(event.data);
       switch (type) {
         case "ready":
           setConnected(true);
+          setNotificationsSupported(notifications === true);
+          break;
+        case "notificationResult":
+          setNotificationPending(false);
+          setNotificationStatus(message);
+          record("Kotlin → React", message);
           break;
         case "greeting":
           setGreeting(message);
@@ -80,6 +89,13 @@ function App() {
     requestAndroid("requestBattery");
   }
 
+  function sendNotification() {
+    if (!notificationsSupported || notificationPending) return;
+    setNotificationPending(true);
+    record("React → Kotlin", "Enviar notificación");
+    requestAndroid("showNotification");
+  }
+
   return (
     <main>
       <h1>{connected ? "React dentro del WebView" : "Análisis del puente React y Android"}</h1>
@@ -112,6 +128,19 @@ function App() {
           <h2>Último mensaje de Android</h2>
           <p aria-live="polite">{greeting || "Aún no hay mensajes"}</p>
         </div>
+      </section>
+
+      <section className="card action-row" aria-label="Notificaciones">
+        <div>
+          <h2>Notificaciones</h2>
+          <output aria-live="polite">
+            {notificationPending ? "Esperando a Android…" : notificationStatus ||
+              (connected && !notificationsSupported ? "Actualiza ToastLink para usar esta función." : "")}
+          </output>
+        </div>
+        <button className="secondary" type="button" disabled={!notificationsSupported || notificationPending} onClick={sendNotification}>
+          Enviar notificación
+        </button>
       </section>
 
       <section className="trace" aria-labelledby="trace-title">
