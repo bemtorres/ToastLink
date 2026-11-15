@@ -33,7 +33,6 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
-import com.journeyapps.barcodescanner.CaptureActivity
 import org.json.JSONObject
 import java.io.ByteArrayInputStream
 
@@ -41,8 +40,6 @@ private const val WEB_ORIGIN = "https://toastlink.cafeycodigo.org"
 private const val START_PAGE = "$WEB_ORIGIN/analisis/"
 private const val NOTIFICATION_CHANNEL = "toastlink_demo"
 private const val DEMO_NOTIFICATION_ID = 1
-
-class ProductQrActivity : CaptureActivity()
 
 class MainActivity : AppCompatActivity() {
     private lateinit var webView: WebView
@@ -201,7 +198,6 @@ class MainActivity : AppCompatActivity() {
         nativeScannerPort = port
         qrScanner.launch(
             ScanOptions()
-                .setCaptureActivity(ProductQrActivity::class.java)
                 .setDesiredBarcodeFormats(ScanOptions.QR_CODE)
                 .setPrompt(getString(R.string.scan_qr_prompt))
                 .setBeepEnabled(false)

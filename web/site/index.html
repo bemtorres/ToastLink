@@ -136,10 +136,9 @@ const result = jsQR(frame.data, frame.width, frame.height);</code></pre>
             </section>
             <section aria-labelledby="native-camera-guide">
               <h4 id="native-camera-guide">Cámara nativa en otra actividad</h4>
-              <p>React envía <code>{"type":"scanNativeQr"}</code> por el canal. Kotlin abre <code>ProductQrActivity</code> con <code>ScanContract</code>. La actividad controla la cámara y ZXing lee el QR. Al volver a ToastLink, Kotlin envía el texto a React. Si se cancela el escaneo, devuelve <code>null</code>.</p>
+              <p>React envía <code>{"type":"scanNativeQr"}</code> por el canal. Kotlin usa <code>ScanContract</code> para abrir <code>CaptureActivity</code>, el lector de ZXing configurado en orientación vertical en el manifiesto. Al volver a ToastLink, Kotlin envía el texto a React. Si se cancela el escaneo, devuelve <code>null</code>.</p>
               <pre aria-label="Kotlin. Abrir el lector QR nativo"><code>qrScanner.launch(
     ScanOptions()
-        .setCaptureActivity(ProductQrActivity::class.java)
         .setDesiredBarcodeFormats(ScanOptions.QR_CODE)
 )</code></pre>
               <p>Ejemplo de resultado del canal:</p>
