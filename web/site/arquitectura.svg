@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 340" font-family="system-ui,sans-serif">
+  <rect width="640" height="340" rx="10" fill="#e6eeff"/>
+  <rect x="185" y="14" width="270" height="49" rx="7" fill="#244db2"/>
+  <text x="320" y="45" text-anchor="middle" font-size="21" fill="white">GitHub Pages · /analisis/</text>
+  <rect x="20" y="97" width="600" height="224" rx="10" fill="#fff" stroke="#b8c8ea" stroke-width="2"/>
+  <text x="39" y="130" font-size="20" font-weight="700" fill="#17243a">Dispositivo Android</text>
+  <path d="M250 63v73l-5-7m5 7 5-7" stroke="#244db2" stroke-width="2.5" fill="none"/>
+  <text x="266" y="90" font-size="17" fill="#244db2">Archivos por HTTPS</text>
+  <rect x="40" y="154" width="228" height="107" rx="8" fill="#e9efff"/>
+  <rect x="372" y="154" width="228" height="107" rx="8" fill="#def5eb"/>
+  <g text-anchor="middle" fill="#17243a">
+    <text x="154" y="186" font-size="22" font-weight="700">WebView</text>
+    <text x="154" y="217" font-size="19">React · Puerto web</text>
+    <text x="486" y="186" font-size="22" font-weight="700">MainActivity</text>
+    <text x="486" y="217" font-size="19">Kotlin · Puerto nativo</text>
+    <text x="486" y="290" font-size="17">Toast · Batería · Saludo</text>
+    <text x="320" y="192" font-size="16">JSON</text>
+  </g>
+  <path d="M282 214h76l-7-5m7 5-7 5M358 232h-76l7-5m-7 5 7 5" stroke="#244db2" stroke-width="2.5" fill="none"/>
+</svg>

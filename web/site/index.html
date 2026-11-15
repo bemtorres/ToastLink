@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Explora cómo se comunican una interfaz React y una app Android escrita en Kotlin.">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; base-uri 'none'; form-action 'none'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'">
     <title>ToastLink · React y Android</title>
     <link rel="stylesheet" href="./landing.css">
   </head>
@@ -40,6 +40,82 @@
         </dl>
         <p class="note">Puedes recorrer el análisis en el navegador. Para activar los controles nativos, abre ToastLink en Android.</p>
       </section>
+      <article class="guide" aria-labelledby="guide">
+        <h2 id="guide">Cómo construir el puente</h2>
+        <p>GitHub Pages sirve la aplicación React por HTTPS. En el teléfono, Kotlin aloja esa página dentro de un WebView y conserva los controles nativos en la misma pantalla. El tráfico HTTP descarga los archivos web. Los mensajes del puente viajan dentro de la app por un canal entre Kotlin y JavaScript.</p>
+        <figure class="diagram">
+          <img src="./arquitectura.svg" width="640" height="340" loading="lazy" alt="GitHub Pages entrega React por HTTPS al WebView. React y MainActivity intercambian mensajes JSON por dos puertos. MainActivity consulta Android.">
+          <figcaption>Arquitectura de ToastLink. El servidor aloja la interfaz y Android ejecuta las operaciones del dispositivo.</figcaption>
+        </figure>
+
+        <section aria-labelledby="open">
+          <h3 id="open">1. Kotlin abre el análisis y crea el canal</h3>
+          <p>La actividad carga <code>/analisis/</code> con <code>loadUrl</code>. Cuando termina de cargar la URL esperada, <code>createWebMessageChannel()</code> crea dos puertos conectados. Kotlin guarda uno y transfiere el otro a React. El origen HTTPS que se pasa a <code>postWebMessage</code> limita qué página puede recibir el puerto.</p>
+          <pre aria-label="Kotlin. Carga y transferencia del puerto"><code>private const val WEB_ORIGIN = "https://toastlink.cafeycodigo.org"
+private const val START_PAGE = "$WEB_ORIGIN/analisis/"
+
+webView.loadUrl(START_PAGE)
+
+// Dentro de connect(), al terminar de cargar START_PAGE
+val (nativePort, reactPort) = webView.createWebMessageChannel()
+port = nativePort
+// Kotlin instala aquí el callback de nativePort.
+webView.postWebMessage(
+    WebMessage("toastlink:connect", arrayOf(reactPort)),
+    Uri.parse(WEB_ORIGIN)
+)</code></pre>
+        </section>
+
+        <section aria-labelledby="ready">
+          <h3 id="ready">2. React confirma que puede recibir mensajes</h3>
+          <p>El evento inicial incluye un puerto en <code>event.ports[0]</code>. React registra un manejador en ese puerto y envía <code>{"type":"ready"}</code>. Kotlin habilita el saludo nativo y devuelve otro <code>ready</code>. React habilita sus botones cuando recibe esa respuesta. En un navegador normal la página muestra el análisis con los controles nativos desactivados.</p>
+          <pre aria-label="JavaScript. Recepción del puerto y confirmación"><code>window.addEventListener("message", (event) =&gt; {
+  if (event.data !== "toastlink:connect" || event.ports.length !== 1) return;
+  const port = event.ports[0];
+  port.onmessage = ({ data }) =&gt; {
+    const response = JSON.parse(data);
+    if (response.type === "ready") setConnected(true);
+  };
+  port.postMessage(JSON.stringify({ type: "ready" }));
+});</code></pre>
+          <p>El ejemplo reúne en un bloque los pasos que la app reparte entre el receptor del puerto y el efecto de React.</p>
+        </section>
+
+        <section aria-labelledby="battery">
+          <h3 id="battery">3. Sigue una consulta de batería de principio a fin</h3>
+          <figure class="diagram">
+            <img src="./secuencia.svg" width="640" height="300" loading="lazy" alt="Secuencia: React envía requestBattery. Kotlin consulta BatteryManager. Android devuelve el nivel. Kotlin envía battery a React, que actualiza la pantalla.">
+            <figcaption>Ida y vuelta de una consulta. El porcentaje que aparece en el análisis viene de Android.</figcaption>
+          </figure>
+          <ol>
+            <li>Al pulsar <strong>Consultar batería</strong>, React marca la operación como pendiente y envía <code>{"type":"requestBattery"}</code>.</li>
+            <li>Kotlin recibe el texto, lo convierte en un <code>JSONObject</code> y elige la operación por el campo <code>type</code>.</li>
+            <li><code>BatteryManager</code> devuelve el nivel. Kotlin acepta valores entre 0 y 100 y manda <code>null</code> si el dato no está disponible.</li>
+            <li>React recibe, por ejemplo, <code>{"type":"battery","percent":85}</code>, limpia el estado pendiente y muestra el porcentaje en la interfaz y el registro.</li>
+          </ol>
+          <pre aria-label="Kotlin. Lectura de la batería"><code>val percent = getSystemService(BatteryManager::class.java)
+    ?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
+    ?.takeIf { it in 0..100 }
+sendToReact("battery", "percent", percent ?: JSONObject.NULL)</code></pre>
+          <pre aria-label="React. Solicitud y presentación del nivel"><code>requestAndroid("requestBattery");
+
+// En el receptor del puerto, para type === "battery"
+const result = percent === null ? "No disponible" : `${percent} %`;
+setBattery(result);
+setBatteryPending(false);</code></pre>
+        </section>
+
+        <section aria-labelledby="protocol">
+          <h3 id="protocol">4. Reutiliza el canal para el toast y el saludo</h3>
+          <dl class="protocol">
+            <div><dt>React → Kotlin</dt><dd><code>{"type":"showToast","message":"Hola desde React"}</code>. Kotlin recorta el texto, descarta los mensajes vacíos y llama a <code>Toast.makeText(...).show()</code>.</dd></div>
+            <div><dt>Kotlin → React</dt><dd><code>{"type":"toastShown"}</code>. React anota la confirmación en el registro.</dd></div>
+            <div><dt>Kotlin → React</dt><dd><code>{"type":"greeting","message":"Hola desde Kotlin"}</code>. El botón nativo envía el mensaje por el mismo puerto y React actualiza el último saludo.</dd></div>
+          </dl>
+          <p>Para ver el recorrido completo, abre el análisis desde ToastLink en Android y compara cada acción con las entradas del registro.</p>
+          <a class="action" href="./analisis/">Abrir el análisis <span aria-hidden="true">↗</span></a>
+        </section>
+      </article>
     </main>
     <footer class="shell">ToastLink <span>·</span> Café y Código</footer>
   </body>

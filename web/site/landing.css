@@ -74,6 +74,17 @@ dd { margin: 0; }
 .note, footer { font-size: 14px; }
 footer { color: var(--muted); }
 footer span { color: var(--accent); }
+.guide { padding-block: 42px; max-width: 800px; }
+.guide h2 { font-size: clamp(29px, 5vw, 44px); letter-spacing: -.04em; }
+.guide h3 { font-size: 22px; letter-spacing: -.02em; margin: 30px 0 10px; }
+.guide p, .guide li { line-height: 1.65; color: var(--muted); overflow-wrap: anywhere; }
+.guide li { margin-block: 7px; }
+.guide code { font-family: var(--mono); font-size: .92em; overflow-wrap: anywhere; }
+.guide pre { padding: 16px; background: var(--panel); color: var(--panel-text); border-radius: 8px; overflow: auto; }
+.guide pre code { overflow-wrap: normal; }
+.diagram { margin: 22px 0; }
+.diagram img { display: block; width: 100%; height: auto; border-radius: 8px; }
+.diagram figcaption { margin-top: 8px; color: var(--muted); font-size: 14px; }
 
 @media (max-width: 660px) {
   .intro, dl div { grid-template-columns: minmax(0, 1fr); }

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 300" font-family="system-ui,sans-serif">
+  <rect width="640" height="300" rx="10" fill="#16243d"/>
+  <g fill="#fff" font-size="22" font-weight="700" text-anchor="middle">
+    <text x="91" y="43">React</text><text x="320" y="43">Kotlin</text><text x="549" y="43">Android</text>
+  </g>
+  <g stroke="#7895c5" stroke-width="1.5" stroke-dasharray="5 5">
+    <path d="M91 55v228M320 55v228M549 55v228"/>
+  </g>
+  <g fill="#edf4ff" font-size="16" text-anchor="middle">
+    <text x="205" y="89">requestBattery</text>
+    <text x="435" y="143">Lee BatteryManager</text>
+    <text x="435" y="196">Nivel informado: 85</text>
+    <text x="205" y="249">battery · percent: 85</text>
+  </g>
+  <g stroke="#c4f3dc" stroke-width="2.5" fill="none">
+    <path d="M91 103h229l-8-5m8 5-8 5M320 156h229l-8-5m8 5-8 5M549 209H320l8-5m-8 5 8 5M320 262H91l8-5m-8 5 8 5"/>
+  </g>
+</svg>

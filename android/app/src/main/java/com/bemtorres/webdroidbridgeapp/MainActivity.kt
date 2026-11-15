@@ -25,20 +25,11 @@ import java.io.ByteArrayInputStream
 
 private const val WEB_ORIGIN = "https://toastlink.cafeycodigo.org"
 private const val START_PAGE = "$WEB_ORIGIN/analisis/"
-private const val LOCAL_ORIGIN = "https://appassets.androidplatform.net"
-private const val OFFLINE_PAGE = "$LOCAL_ORIGIN/toastlink/index.html"
-private const val LOAD_TIMEOUT_MS = 6000L
 
 class MainActivity : AppCompatActivity() {
     private lateinit var webView: WebView
     private lateinit var greetButton: Button
     private var port: WebMessagePort? = null
-    private var offline = false
-    private val fallback = Runnable { loadOffline() }
-
-    private val currentPage: String
-        get() = if (offline) OFFLINE_PAGE else START_PAGE
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -69,18 +60,16 @@ class MainActivity : AppCompatActivity() {
             mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
         }
         webView.webViewClient = DemoClient()
-        webView.postDelayed(fallback, LOAD_TIMEOUT_MS)
         webView.loadUrl(START_PAGE)
     }
 
-    private fun loadOffline() {
-        if (offline || isDestroyed) return
-        offline = true
-        webView.removeCallbacks(fallback)
+    private var loadFailed = false
+
+    private fun showLoadError() {
+        if (loadFailed) return
+        loadFailed = true
         disconnect()
-        webView.stopLoading()
-        webView.settings.blockNetworkLoads = true
-        webView.loadUrl(OFFLINE_PAGE)
+        Toast.makeText(this, R.string.web_load_error, Toast.LENGTH_LONG).show()
     }
 
     private fun disconnect() {
@@ -90,12 +79,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun connect() {
-        val origin = Uri.parse(if (offline) LOCAL_ORIGIN else WEB_ORIGIN)
+        val origin = Uri.parse(WEB_ORIGIN)
         val (nativePort, reactPort) = webView.createWebMessageChannel()
         port = nativePort
         nativePort.setWebMessageCallback(object : WebMessagePort.WebMessageCallback() {
             override fun onMessage(sender: WebMessagePort, message: WebMessage) {
-                if (sender !== port || webView.url != currentPage) return
+                if (sender !== port || webView.url != START_PAGE) return
                 receiveFromReact(message.data)
             }
         })
@@ -107,7 +96,6 @@ class MainActivity : AppCompatActivity() {
         val request = runCatching { JSONObject(data) }.getOrNull() ?: return
         val type = request.optString("type")
         if (type == "ready") {
-            webView.removeCallbacks(fallback)
             greetButton.isEnabled = true
             sendToReact("ready")
             return
@@ -137,7 +125,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
-        webView.removeCallbacks(fallback)
         disconnect()
         (webView.parent as? ViewGroup)?.removeView(webView)
         webView.destroy()
@@ -146,38 +133,34 @@ class MainActivity : AppCompatActivity() {
 
     private inner class DemoClient : WebViewClient() {
         override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean =
-            !request.isForMainFrame || request.url.toString() != currentPage
+            !request.isForMainFrame || request.url.toString() != START_PAGE
 
         override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
+            loadFailed = false
             disconnect()
         }
 
         override fun onPageFinished(view: WebView, url: String) {
-            if (url == currentPage && view.url == currentPage && port == null) connect()
+            if (!loadFailed && url == START_PAGE && view.url == START_PAGE && port == null) connect()
         }
 
         override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
-            if (request.isForMainFrame && request.url.toString() == START_PAGE) loadOffline()
+            if (request.isForMainFrame && request.url.toString() == START_PAGE) showLoadError()
         }
 
         override fun onReceivedHttpError(view: WebView, request: WebResourceRequest, error: WebResourceResponse) {
-            if (request.isForMainFrame && request.url.toString() == START_PAGE) loadOffline()
+            if (request.isForMainFrame && request.url.toString() == START_PAGE) showLoadError()
         }
 
         override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
             val url = request.url.toString()
             return when (url) {
                 START_PAGE, "$WEB_ORIGIN/analisis/main.css", "$WEB_ORIGIN/analisis/main.js" -> null
-                OFFLINE_PAGE -> localAsset("index.html", "text/html")
-                "$LOCAL_ORIGIN/toastlink/main.css" -> localAsset("main.css", "text/css")
-                "$LOCAL_ORIGIN/toastlink/main.js" -> localAsset("main.js", "text/javascript")
                 else -> WebResourceResponse(
                     "text/plain", "UTF-8", 404, "Not Found", emptyMap(), ByteArrayInputStream(byteArrayOf())
                 )
             }
         }
 
-        private fun localAsset(file: String, mimeType: String) =
-            WebResourceResponse(mimeType, "UTF-8", assets.open("toastlink/$file"))
     }
 }

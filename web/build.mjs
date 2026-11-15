@@ -3,21 +3,20 @@ import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
 
 const project = fileURLToPath(new URL(".", import.meta.url));
-const assets = new URL("../android/app/src/main/assets/toastlink/", import.meta.url);
 const site = new URL("dist/", import.meta.url);
 const demo = new URL("analisis/", site);
 
-await mkdir(assets, { recursive: true });
+await mkdir(demo, { recursive: true });
 await build({
   absWorkingDir: project,
   entryPoints: ["src/main.jsx"],
-  outfile: fileURLToPath(new URL("main.js", assets)),
+  outfile: fileURLToPath(new URL("main.js", demo)),
   bundle: true,
   minify: true,
   target: "chrome60",
   define: { "process.env.NODE_ENV": '"production"' },
 });
-await copyFile(new URL("index.html", import.meta.url), new URL("index.html", assets));
+await copyFile(new URL("index.html", import.meta.url), new URL("index.html", demo));
 
 const licenses = await Promise.all(
   ["react", "react-dom", "scheduler"].map(async (name) => {
@@ -25,13 +24,11 @@ const licenses = await Promise.all(
     return `${name}\n\n${license}`;
   }),
 );
-await writeFile(new URL("licenses.txt", assets), licenses.join("\n\n"));
+await writeFile(new URL("licenses.txt", demo), licenses.join("\n\n"));
 
-await mkdir(demo, { recursive: true });
 await Promise.all([
   copyFile(new URL("site/index.html", import.meta.url), new URL("index.html", site)),
   copyFile(new URL("site/landing.css", import.meta.url), new URL("landing.css", site)),
-  ...["index.html", "main.css", "main.js", "licenses.txt"].map((file) =>
-    copyFile(new URL(file, assets), new URL(file, demo)),
-  ),
+  copyFile(new URL("site/arquitectura.svg", import.meta.url), new URL("arquitectura.svg", site)),
+  copyFile(new URL("site/secuencia.svg", import.meta.url), new URL("secuencia.svg", site)),
 ]);

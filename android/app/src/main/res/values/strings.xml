@@ -3,4 +3,5 @@
     <string name="native_title">ToastLink · Controles Kotlin</string>
     <string name="greet_react">Saludar a React</string>
     <string name="kotlin_greeting">Hola desde Kotlin</string>
+    <string name="web_load_error">No se pudo abrir el análisis. Comprueba tu conexión y vuelve a abrir ToastLink.</string>
 </resources>
