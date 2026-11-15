@@ -40,7 +40,8 @@ jobs:
           cache: gradle
 
       - name: Instalar el SDK de Android
-        run: sdkmanager 'platforms;android-37.0' 'build-tools;36.0.0'
+        run: |
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-37.0' 'build-tools;36.0.0'
 
       - name: Ejecutar pruebas y generar el APK
         working-directory: WebDroidBridgeAPP
