@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import DeliveryStore from "./DeliveryStore.jsx";
+import DeliveryStore, { Credits } from "./DeliveryStore.jsx";
 import "./style.css";
 
 let androidPort = null;
@@ -23,6 +23,8 @@ function App() {
   const [storeOpen, setStoreOpen] = useState(false);
   const [nativeQrSupported, setNativeQrSupported] = useState(false);
   const [nativeScan, setNativeScan] = useState(null);
+  const [shareSupported, setShareSupported] = useState(false);
+  const [shareStatus, setShareStatus] = useState("");
   const nextId = useRef(0);
 
   function record(direction, text) {
@@ -32,12 +34,17 @@ function App() {
 
   useEffect(() => {
     function receive(event) {
-      const { type, message, percent, notifications, nativeQr, value } = JSON.parse(event.data);
+      const { type, message, percent, notifications, nativeQr, nativeShare, value } = JSON.parse(event.data);
       switch (type) {
         case "ready":
           setConnected(true);
           setNotificationsSupported(notifications === true);
           setNativeQrSupported(nativeQr === true);
+          setShareSupported(nativeShare === true);
+          break;
+        case "shareOrderResult":
+          setShareStatus(message);
+          record("Kotlin → React", message);
           break;
         case "nativeQrResult":
           setNativeScan(value === null
@@ -114,6 +121,13 @@ function App() {
     requestAndroid("scanNativeQr");
   }
 
+  function shareOrder(summary) {
+    if (!shareSupported) return;
+    setShareStatus("");
+    record("React → Kotlin", "Abrir panel para compartir el pedido");
+    requestAndroid("shareOrder", { summary });
+  }
+
   return (
     <>
     <main hidden={storeOpen}>
@@ -181,6 +195,7 @@ function App() {
         <div><h2>Prueba el puente en una tienda</h2><p className="store-entry-copy">Explora el catálogo y compara las dos cámaras.</p></div>
         <button type="button" onClick={() => { setStoreOpen(true); window.scrollTo(0, 0); }}>Ir a la tienda</button>
       </section>
+      <Credits />
     </main>
     <DeliveryStore
       active={storeOpen}
@@ -188,6 +203,9 @@ function App() {
       nativeSupported={nativeQrSupported}
       onNativeScan={scanNative}
       nativeScan={nativeScan}
+      shareSupported={shareSupported}
+      onShare={shareOrder}
+      shareStatus={shareStatus}
     />
     </>
   );

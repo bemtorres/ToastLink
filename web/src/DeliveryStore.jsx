@@ -1,15 +1,24 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import jsQR from "jsqr";
+import { ArrowLeft, Camera, Coffee, Croissant, Globe, Minus, Plus, Sandwich, ScanLine, Share2, ShoppingBag, Store, Wheat } from "lucide-react";
 
 const products = [
-  { id: "TL-CAFE", name: "Café de la casa", detail: "Americano de grano tostado", icon: "☕", price: 2400, tone: "coffee" },
-  { id: "TL-CROISSANT", name: "Croissant de mantequilla", detail: "Hojaldre recién horneado", icon: "🥐", price: 2900, tone: "pastry" },
-  { id: "TL-SANDWICH", name: "Sándwich de palta", detail: "Pan de masa madre y tomate", icon: "🥪", price: 4600, tone: "sandwich" },
-  { id: "TL-ROLLO", name: "Rollo de canela", detail: "Glaseado de vainilla", icon: "🍥", price: 3200, tone: "roll" },
+  { id: "TL-CAFE", name: "Café de la casa", detail: "Americano de grano tostado", icon: Coffee, price: 2400, tone: "coffee" },
+  { id: "TL-CROISSANT", name: "Croissant de mantequilla", detail: "Hojaldre recién horneado", icon: Croissant, price: 2900, tone: "pastry" },
+  { id: "TL-SANDWICH", name: "Sándwich de palta", detail: "Pan de masa madre y tomate", icon: Sandwich, price: 4600, tone: "sandwich" },
+  { id: "TL-ROLLO", name: "Rollo de canela", detail: "Glaseado de vainilla", icon: Wheat, price: 3200, tone: "roll" },
 ];
 
 const money = new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 });
-const tabs = [["catalog", "Catálogo"], ["scan", "Escanear QR"], ["cart", "Carrito"]];
+const tabs = [["catalog", "Catálogo", Store], ["scan", "Escanear QR", ScanLine], ["cart", "Carrito", ShoppingBag]];
+
+export function Credits() {
+  return (
+    <footer className="web-credits">
+      Creado por <a href="https://github.com/bemtorres">Bemtorres en GitHub</a> para <a href="https://cafeycodigo.org/">cafeycodigo.org</a>.
+    </footer>
+  );
+}
 
 function WebScanner({ onRead, onError }) {
   const videoRef = useRef(null);
@@ -77,7 +86,10 @@ function WebScanner({ onRead, onError }) {
   return <video ref={videoRef} className="store-video" muted playsInline aria-label="Vista previa de la cámara web" />;
 }
 
-export default function DeliveryStore({ active, onBack, nativeSupported, onNativeScan, nativeScan }) {
+export default function DeliveryStore({
+  active, onBack, nativeSupported, onNativeScan, nativeScan,
+  shareSupported, onShare, shareStatus,
+}) {
   const [tab, setTab] = useState("catalog");
   const [cart, setCart] = useState({});
   const [webCamera, setWebCamera] = useState(false);
@@ -108,6 +120,16 @@ export default function DeliveryStore({ active, onBack, nativeSupported, onNativ
   function selectTab(next) {
     setWebCamera(false);
     setTab(next);
+    window.scrollTo(0, 0);
+  }
+
+  function shareOrder() {
+    const summary = [
+      "Pedido de demostración · Despensa ToastLink",
+      ...items.map(({ id, name, price }) => `${cart[id]} × ${name} · ${money.format(price * cart[id])}`),
+      `Total: ${money.format(total)}`,
+    ].join("\n");
+    onShare(summary);
   }
 
   if (!active) return null;
@@ -116,7 +138,7 @@ export default function DeliveryStore({ active, onBack, nativeSupported, onNativ
     <main className="store">
       <header className="store-header">
         <button type="button" className="store-back" onClick={() => { setWebCamera(false); onBack(); }}>
-          ← Volver al puente
+          <ArrowLeft size={18} aria-hidden="true" /> Volver al puente
         </button>
         <h1>Despensa ToastLink</h1>
         <p>Café, panadería y almuerzos para llevar.</p>
@@ -130,7 +152,7 @@ export default function DeliveryStore({ active, onBack, nativeSupported, onNativ
           <div className="product-grid">
             {products.map((product) => (
               <article className="product" key={product.id}>
-                <div className={`product-art ${product.tone}`} aria-hidden="true">{product.icon}</div>
+                <div className={`product-art ${product.tone}`} aria-hidden="true"><product.icon size={38} strokeWidth={1.7} /></div>
                 <div className="product-info">
                   <h3>{product.name}</h3>
                   <p>{product.detail}</p>
@@ -153,9 +175,9 @@ export default function DeliveryStore({ active, onBack, nativeSupported, onNativ
             <button type="button" disabled={nativeScan?.pending} onClick={() => {
               setWebResult(null);
               setWebCamera((open) => !open);
-            }}>{webCamera ? "Cerrar cámara web" : "Abrir cámara web"}</button>
+            }}><Globe size={17} aria-hidden="true" /> {webCamera ? "Cerrar cámara web" : "Abrir cámara web"}</button>
             <button type="button" className="secondary" disabled={!nativeSupported || webCamera || nativeScan?.pending} onClick={onNativeScan}>
-              {nativeScan?.pending ? "Cámara nativa abierta…" : "Abrir cámara nativa"}
+              <Camera size={17} aria-hidden="true" /> {nativeScan?.pending ? "Cámara nativa abierta…" : "Abrir cámara nativa"}
             </button>
           </div>
           {!nativeSupported && <p>Abre la versión actualizada de ToastLink en Android para usar la cámara nativa.</p>}
@@ -191,27 +213,44 @@ export default function DeliveryStore({ active, onBack, nativeSupported, onNativ
                   <li key={product.id}>
                     <div><strong>{product.name}</strong><p>{money.format(product.price * cart[product.id])}</p></div>
                     <div className="quantity-controls">
-                      <button type="button" className="secondary" aria-label={`Quitar una unidad de ${product.name}`} onClick={() => changeQuantity(product, -1)}>−</button>
+                      <button type="button" className="secondary" aria-label={`Quitar una unidad de ${product.name}`} onClick={() => changeQuantity(product, -1)}><Minus size={16} aria-hidden="true" /></button>
                       <span>{cart[product.id]}</span>
-                      <button type="button" className="secondary" aria-label={`Agregar una unidad de ${product.name}`} onClick={() => changeQuantity(product, 1)}>+</button>
+                      <button type="button" className="secondary" aria-label={`Agregar una unidad de ${product.name}`} onClick={() => changeQuantity(product, 1)}><Plus size={16} aria-hidden="true" /></button>
                     </div>
                   </li>
                 ))}
               </ul>
               <div className="cart-total"><strong>Total</strong><strong>{money.format(total)}</strong></div>
-              <p>Carrito de demostración.</p>
+              <div className="share-order">
+                <button type="button" disabled={!shareSupported} onClick={shareOrder}>
+                  <Share2 size={18} aria-hidden="true" /> Compartir pedido
+                </button>
+                {!shareSupported && <p>Abre el APK actualizado de ToastLink para compartir desde Android.</p>}
+                <p role="status">{shareStatus}</p>
+              </div>
             </>
           )}
         </section>
       )}
 
-      <nav className="store-nav" aria-label="Navegación de la tienda">
-        {tabs.map(([id, label]) => (
-          <button key={id} type="button" aria-current={tab === id ? "page" : undefined} onClick={() => selectTab(id)}>
-            {id === "cart" && quantity > 0 ? `${label} (${quantity})` : label}
-          </button>
-        ))}
-      </nav>
+      <Credits />
+      <div className="store-dock">
+        <nav className="store-nav" aria-label="Navegación de la tienda">
+          {tabs.map(([id, label, Icon]) => {
+            const cartCount = id === "cart" && quantity > 0;
+            return (
+              <button key={id} type="button" aria-current={tab === id ? "page" : undefined}
+                aria-label={cartCount ? `Carrito, ${quantity} unidades` : label} onClick={() => selectTab(id)}>
+                <span className="store-nav-icon">
+                  <Icon size={22} strokeWidth={tab === id ? 2.4 : 1.8} aria-hidden="true" />
+                  {cartCount && <span className="store-nav-count" aria-hidden="true">{quantity > 99 ? "99+" : quantity}</span>}
+                </span>
+                <span>{label}</span>
+              </button>
+            );
+          })}
+        </nav>
+      </div>
     </main>
   );
 }

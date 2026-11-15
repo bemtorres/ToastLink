@@ -4,6 +4,8 @@ import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.content.ActivityNotFoundException
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.net.Uri
@@ -148,12 +150,13 @@ class MainActivity : AppCompatActivity() {
         val type = request.optString("type")
         if (type == "ready") {
             greetButton.isEnabled = true
-            port?.postMessage(WebMessage("""{"type":"ready","notifications":true,"nativeQr":true}"""))
+            port?.postMessage(WebMessage("""{"type":"ready","notifications":true,"nativeQr":true,"nativeShare":true}"""))
             return
         }
         if (!greetButton.isEnabled) return
 
         when (type) {
+            "shareOrder" -> shareOrder(request.optString("summary"))
             "scanNativeQr" -> openNativeScanner()
             "showNotification" -> showDemoNotification()
             "showToast" -> {
@@ -169,6 +172,24 @@ class MainActivity : AppCompatActivity() {
                 sendToReact("battery", "percent", percent ?: JSONObject.NULL)
             }
         }
+    }
+
+    private fun shareOrder(summary: String) {
+        val text = summary.trim()
+        if (text.isEmpty() || text.length > 1000) {
+            sendToReact("shareOrderResult", "message", getString(R.string.order_share_unavailable))
+            return
+        }
+        val intent = Intent(Intent.ACTION_SEND)
+            .setType("text/plain")
+            .putExtra(Intent.EXTRA_TEXT, text)
+        val result = try {
+            startActivity(Intent.createChooser(intent, getString(R.string.order_share_title)))
+            R.string.order_share_opened
+        } catch (_: ActivityNotFoundException) {
+            R.string.order_share_unavailable
+        }
+        sendToReact("shareOrderResult", "message", getString(result))
     }
 
     private fun openNativeScanner() {
@@ -275,8 +296,21 @@ class MainActivity : AppCompatActivity() {
     }
 
     private inner class DemoClient : WebViewClient() {
-        override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean =
-            !request.isForMainFrame || request.url.toString() != START_PAGE
+        override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+            if (!request.isForMainFrame) return true
+            val url = request.url.toString()
+            if (url == START_PAGE) return false
+            if (request.hasGesture() &&
+                (url == "https://github.com/bemtorres" || url == "https://cafeycodigo.org/")
+            ) {
+                try {
+                    startActivity(Intent(Intent.ACTION_VIEW, request.url))
+                } catch (_: ActivityNotFoundException) {
+                    Toast.makeText(this@MainActivity, R.string.link_unavailable, Toast.LENGTH_SHORT).show()
+                }
+            }
+            return true
+        }
 
         override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
             loadFailed = false

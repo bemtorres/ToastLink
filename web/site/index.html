@@ -151,8 +151,17 @@ const result = jsQR(frame.data, frame.width, frame.height);</code></pre>
             <figcaption>Muestra este QR en otra pantalla y escanéalo con cada cámara. Si coincide con el catálogo, podrás agregar el producto al carrito.</figcaption>
           </figure>
         </section>
+        <section aria-labelledby="share-order-guide">
+          <h3 id="share-order-guide">6. Comparte el carrito con otra app</h3>
+          <p>En el carrito, pulsa <strong>Compartir pedido</strong>. React calcula el total, prepara un resumen con las cantidades y lo envía a Kotlin como <code>shareOrder</code>. Android abre su panel para que elijas dónde compartir el resumen.</p>
+          <pre aria-label="Kotlin. Abrir el panel para compartir"><code>val intent = Intent(Intent.ACTION_SEND)
+    .setType("text/plain")
+    .putExtra(Intent.EXTRA_TEXT, summary)
+startActivity(Intent.createChooser(intent, getString(R.string.order_share_title)))</code></pre>
+          <p>El registro confirma la apertura del panel. Desde allí puedes elegir una aplicación o cerrar el panel para volver al carrito.</p>
+        </section>
       </article>
     </main>
-    <footer class="shell">ToastLink <span>·</span> Café y Código</footer>
+    <footer class="shell"><p>ToastLink · Creado por <a href="https://github.com/bemtorres">Bemtorres en GitHub</a> para <a href="https://cafeycodigo.org/">cafeycodigo.org</a>.</p></footer>
   </body>
 </html>

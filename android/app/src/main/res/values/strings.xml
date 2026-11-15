@@ -9,4 +9,8 @@
     <string name="notification_sent">Notificación enviada. Revisa el panel de Android.</string>
     <string name="notification_blocked">Activa las notificaciones de ToastLink en los ajustes de Android.</string>
     <string name="scan_qr_prompt">Apunta al código QR del producto</string>
+    <string name="order_share_title">Compartir pedido</string>
+    <string name="order_share_opened">Panel de Android abierto para compartir el pedido.</string>
+    <string name="order_share_unavailable">No se pudo abrir el panel para compartir el pedido.</string>
+    <string name="link_unavailable">No se encontró una aplicación para abrir el enlace.</string>
 </resources>

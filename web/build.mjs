@@ -19,7 +19,7 @@ await build({
 await copyFile(new URL("index.html", import.meta.url), new URL("index.html", demo));
 
 const licenses = await Promise.all(
-  ["react", "react-dom", "scheduler", "jsqr"].map(async (name) => {
+  ["react", "react-dom", "scheduler", "jsqr", "lucide-react"].map(async (name) => {
     const license = await readFile(new URL(`node_modules/${name}/LICENSE`, import.meta.url), "utf8");
     return `${name}\n\n${license}`;
   }),
