@@ -1,0 +1,7 @@
+/.idea/
+/.vscode/
+/WebDroidBridgeAPP/.idea/
+.env
+.env.*
+*.jks
+*.keystore
