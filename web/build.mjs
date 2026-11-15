@@ -3,7 +3,9 @@ import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
 
 const project = fileURLToPath(new URL(".", import.meta.url));
-const assets = new URL("../WebDroidBridgeAPP/app/src/main/assets/toastlink/", import.meta.url);
+const assets = new URL("../android/app/src/main/assets/toastlink/", import.meta.url);
+const site = new URL("dist/", import.meta.url);
+const demo = new URL("analisis/", site);
 
 await mkdir(assets, { recursive: true });
 await build({
@@ -24,3 +26,12 @@ const licenses = await Promise.all(
   }),
 );
 await writeFile(new URL("licenses.txt", assets), licenses.join("\n\n"));
+
+await mkdir(demo, { recursive: true });
+await Promise.all([
+  copyFile(new URL("site/index.html", import.meta.url), new URL("index.html", site)),
+  copyFile(new URL("site/landing.css", import.meta.url), new URL("landing.css", site)),
+  ...["index.html", "main.css", "main.js", "licenses.txt"].map((file) =>
+    copyFile(new URL(file, assets), new URL(file, demo)),
+  ),
+]);

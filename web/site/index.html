@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Explora cómo se comunican una interfaz React y una app Android escrita en Kotlin.">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; base-uri 'none'; form-action 'none'">
+    <title>ToastLink · React y Android</title>
+    <link rel="stylesheet" href="./landing.css">
+  </head>
+  <body>
+    <header class="shell">
+      <a class="wordmark" href="./" aria-label="ToastLink, inicio">Toast<span>Link</span></a>
+      <a class="header-link" href="./analisis/">Análisis ↗</a>
+    </header>
+    <main class="shell">
+      <section class="intro" aria-labelledby="intro">
+        <div>
+          <p class="eyebrow">React dentro de Android</p>
+          <h1 id="intro">Una interfaz web que habla con Android.</h1>
+          <p class="summary">ToastLink combina una pantalla React en un WebView con controles nativos en Kotlin. La web puede pedir acciones al teléfono y Android puede responder en la misma pantalla.</p>
+          <a class="action" href="./analisis/">Ver el análisis <span aria-hidden="true">↗</span></a>
+        </div>
+        <figure class="flow">
+          <figcaption>Cómo viaja un mensaje</figcaption>
+          <div class="endpoint"><strong>React</strong><span>Interfaz del WebView</span></div>
+          <div class="messages">
+            <span><b aria-hidden="true">↓</b> Solicita la batería</span>
+            <span><b aria-hidden="true">↑</b> Devuelve el porcentaje</span>
+          </div>
+          <div class="endpoint native"><strong>Kotlin</strong><span>Funciones de Android</span></div>
+        </figure>
+      </section>
+      <section class="checks" aria-labelledby="checks">
+        <h2 id="checks">Tres pruebas del puente</h2>
+        <dl>
+          <div><dt>Mostrar un toast</dt><dd>Escribe en React y Kotlin muestra el texto como un aviso en Android.</dd></div>
+          <div><dt>Saludar a React</dt><dd>Pulsa el botón nativo y lee el saludo de Kotlin en la pantalla web.</dd></div>
+          <div><dt>Consultar batería</dt><dd>React solicita el dato y Kotlin devuelve el nivel que informa el dispositivo.</dd></div>
+        </dl>
+        <p class="note">Puedes recorrer el análisis en el navegador. Para activar los controles nativos, abre ToastLink en Android.</p>
+      </section>
+    </main>
+    <footer class="shell">ToastLink <span>·</span> Café y Código</footer>
+  </body>
+</html>

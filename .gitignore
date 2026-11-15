@@ -1,5 +1,6 @@
 /.idea/
 /.vscode/
+/android/.idea/
 /WebDroidBridgeAPP/.idea/
 .env
 .env.*

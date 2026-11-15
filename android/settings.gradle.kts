@@ -22,5 +22,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "WebDroidBridgeAPP"
+rootProject.name = "ToastLink"
 include(":app")

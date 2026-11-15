@@ -25,13 +25,19 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-          cache-dependency-path: WebDroidBridgeWeb/package-lock.json
+          cache-dependency-path: web/package-lock.json
 
       - name: Empaquetar React
-        working-directory: WebDroidBridgeWeb
+        working-directory: web
         run: |
           npm ci
           npm run build
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: toastlink-web
+          path: web/dist/
+          if-no-files-found: error
 
       - uses: actions/setup-java@v5
         with:
@@ -44,13 +50,13 @@ jobs:
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-37.0' 'build-tools;36.0.0'
 
       - name: Ejecutar pruebas y generar el APK
-        working-directory: WebDroidBridgeAPP
+        working-directory: android
         run: bash ./gradlew --no-daemon :app:testDebugUnitTest :app:assembleDebug
 
       - uses: actions/upload-artifact@v6
         with:
           name: toastlink-debug
-          path: WebDroidBridgeAPP/app/build/outputs/apk/debug/app-debug.apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
 
   release:

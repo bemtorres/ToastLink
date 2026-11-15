@@ -2,7 +2,12 @@ import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./style.css";
 
-const bridge = window.ToastLinkAndroid;
+let androidPort = null;
+window.addEventListener("message", (event) => {
+  if (event.data !== "toastlink:connect" || event.ports.length !== 1 || androidPort) return;
+  androidPort = event.ports[0];
+  window.dispatchEvent(new Event("toastlink:connect"));
+});
 
 function App() {
   const [message, setMessage] = useState("Hola desde React");
@@ -10,6 +15,7 @@ function App() {
   const [battery, setBattery] = useState(null);
   const [batteryPending, setBatteryPending] = useState(false);
   const [log, setLog] = useState([]);
+  const [connected, setConnected] = useState(false);
   const nextId = useRef(0);
 
   function record(direction, text) {
@@ -19,8 +25,11 @@ function App() {
 
   useEffect(() => {
     function receive(event) {
-      const { type, message, percent } = event.detail;
+      const { type, message, percent } = JSON.parse(event.data);
       switch (type) {
+        case "ready":
+          setConnected(true);
+          break;
         case "greeting":
           setGreeting(message);
           record("Kotlin → React", message);
@@ -38,36 +47,54 @@ function App() {
       }
     }
 
-    window.addEventListener("toastlink:android", receive);
-    bridge?.ready();
-    return () => window.removeEventListener("toastlink:android", receive);
+    function connect() {
+      if (!androidPort) return;
+      androidPort.onmessage = receive;
+      requestAndroid("ready");
+    }
+
+    window.addEventListener("toastlink:connect", connect);
+    connect();
+    return () => {
+      window.removeEventListener("toastlink:connect", connect);
+      if (androidPort) androidPort.onmessage = null;
+    };
   }, []);
+
+  function requestAndroid(type, fields = {}) {
+    androidPort?.postMessage(JSON.stringify({ type, ...fields }));
+  }
 
   function sendToast(event) {
     event.preventDefault();
     const text = message.trim();
-    if (!bridge || !text) return;
+    if (!connected || !text) return;
     record("React → Kotlin", `Mostrar toast · ${text}`);
-    bridge.showToast(text);
+    requestAndroid("showToast", { message: text });
   }
 
   function requestBattery() {
-    if (!bridge || batteryPending) return;
+    if (!connected || batteryPending) return;
     setBatteryPending(true);
     record("React → Kotlin", "Consultar nivel de batería");
-    bridge.requestBattery();
+    requestAndroid("requestBattery");
   }
 
   return (
     <main>
-      <h1>React dentro del WebView</h1>
-      {!bridge && <p className="notice">Abre ToastLink en Android para usar los controles.</p>}
+      <h1>{connected ? "React dentro del WebView" : "Análisis del puente React y Android"}</h1>
+      {!connected && (
+        <p className="notice">
+          Aquí puedes ver los controles y el registro del puente. Abre ToastLink en Android para probarlos.
+          {" "}<a href="../">Volver al inicio</a>
+        </p>
+      )}
 
       <form className="card" onSubmit={sendToast}>
         <label htmlFor="message">Mensaje del toast</label>
         <div className="field">
           <input id="message" value={message} maxLength={120} onChange={(event) => setMessage(event.target.value)} />
-          <button disabled={!bridge || !message.trim()}>Enviar a Android</button>
+          <button disabled={!connected || !message.trim()}>Enviar a Android</button>
         </div>
       </form>
 
@@ -77,7 +104,7 @@ function App() {
             <h2>Batería</h2>
             <output aria-live="polite">{batteryPending ? "Consultando…" : battery ?? "Sin consultar"}</output>
           </div>
-          <button className="secondary" type="button" disabled={!bridge || batteryPending} onClick={requestBattery}>
+          <button className="secondary" type="button" disabled={!connected || batteryPending} onClick={requestBattery}>
             Consultar batería
           </button>
         </div>

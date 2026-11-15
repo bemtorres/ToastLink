@@ -1,3 +1,0 @@
--keepclassmembers class com.bemtorres.webdroidbridgeapp.MainActivity$ToastLinkBridge {
-    @android.webkit.JavascriptInterface <methods>;
-}
