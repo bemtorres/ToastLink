@@ -19,7 +19,7 @@ await build({
 await copyFile(new URL("index.html", import.meta.url), new URL("index.html", demo));
 
 const licenses = await Promise.all(
-  ["react", "react-dom", "scheduler"].map(async (name) => {
+  ["react", "react-dom", "scheduler", "jsqr"].map(async (name) => {
     const license = await readFile(new URL(`node_modules/${name}/LICENSE`, import.meta.url), "utf8");
     return `${name}\n\n${license}`;
   }),
@@ -27,6 +27,8 @@ const licenses = await Promise.all(
 await writeFile(new URL("licenses.txt", demo), licenses.join("\n\n"));
 
 await Promise.all([
+  copyFile(new URL("site/qr-demo.svg", import.meta.url), new URL("qr-demo.svg", demo)),
+  copyFile(new URL("site/qr-demo.svg", import.meta.url), new URL("qr-demo.svg", site)),
   copyFile(new URL("site/index.html", import.meta.url), new URL("index.html", site)),
   copyFile(new URL("site/landing.css", import.meta.url), new URL("landing.css", site)),
   copyFile(new URL("site/arquitectura.svg", import.meta.url), new URL("arquitectura.svg", site)),

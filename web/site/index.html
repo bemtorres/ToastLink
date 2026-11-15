@@ -116,6 +116,41 @@ setBatteryPending(false);</code></pre>
           <p>Para ver el recorrido completo, abre el análisis desde ToastLink en Android y compara cada acción con las entradas del registro.</p>
           <a class="action" href="./analisis/">Abrir el análisis <span aria-hidden="true">↗</span></a>
         </section>
+        <section aria-labelledby="delivery">
+          <h3 id="delivery">5. Aplica el puente a una tienda de delivery</h3>
+          <p>En el análisis, pulsa <strong>Ir a la tienda</strong>. La barra inferior permite recorrer el catálogo, escanear un QR y revisar el carrito. Los dos lectores buscan el texto del QR en el mismo catálogo. El QR de prueba contiene <code>TL-CAFE</code> y permite encontrar el café de la casa.</p>
+          <div class="delivery-compare">
+            <section aria-labelledby="web-camera-guide">
+              <h4 id="web-camera-guide">Cámara web dentro del WebView</h4>
+              <p>React solicita vídeo con <code>getUserMedia</code>. En Android, <code>WebChromeClient</code> comprueba el origen HTTPS y la página, pide el permiso de cámara si hace falta y concede el recurso de vídeo. React recibe el flujo, copia fotogramas a un canvas y jsQR devuelve el texto. Al cerrar la vista o encontrar un código, React detiene las pistas de vídeo.</p>
+              <pre aria-label="React. Decodificar un fotograma"><code>const stream = await navigator.mediaDevices.getUserMedia({
+  video: { facingMode: { ideal: "environment" } },
+  audio: false,
+});
+video.srcObject = stream;
+
+// En cada fotograma que se analiza
+context.drawImage(video, 0, 0, canvas.width, canvas.height);
+const frame = context.getImageData(0, 0, canvas.width, canvas.height);
+const result = jsQR(frame.data, frame.width, frame.height);</code></pre>
+            </section>
+            <section aria-labelledby="native-camera-guide">
+              <h4 id="native-camera-guide">Cámara nativa en otra actividad</h4>
+              <p>React envía <code>{"type":"scanNativeQr"}</code> por el canal. Kotlin abre <code>ProductQrActivity</code> con <code>ScanContract</code>. La actividad controla la cámara y ZXing lee el QR. Al volver a ToastLink, Kotlin envía el texto a React. Si se cancela el escaneo, devuelve <code>null</code>.</p>
+              <pre aria-label="Kotlin. Abrir el lector QR nativo"><code>qrScanner.launch(
+    ScanOptions()
+        .setCaptureActivity(ProductQrActivity::class.java)
+        .setDesiredBarcodeFormats(ScanOptions.QR_CODE)
+)</code></pre>
+              <p>Ejemplo de resultado del canal:</p>
+              <pre aria-label="JSON. Resultado del lector nativo"><code>{"type":"nativeQrResult","value":"TL-CAFE"}</code></pre>
+            </section>
+          </div>
+          <figure class="diagram">
+            <img src="./qr-demo.svg" width="152" height="152" loading="lazy" alt="Código QR de prueba del café de la casa">
+            <figcaption>Muestra este QR en otra pantalla y escanéalo con cada cámara. Si coincide con el catálogo, podrás agregar el producto al carrito.</figcaption>
+          </figure>
+        </section>
       </article>
     </main>
     <footer class="shell">ToastLink <span>·</span> Café y Código</footer>

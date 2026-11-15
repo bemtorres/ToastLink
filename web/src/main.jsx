@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
+import DeliveryStore from "./DeliveryStore.jsx";
 import "./style.css";
 
 let androidPort = null;
@@ -19,6 +20,9 @@ function App() {
   const [notificationStatus, setNotificationStatus] = useState("");
   const [log, setLog] = useState([]);
   const [connected, setConnected] = useState(false);
+  const [storeOpen, setStoreOpen] = useState(false);
+  const [nativeQrSupported, setNativeQrSupported] = useState(false);
+  const [nativeScan, setNativeScan] = useState(null);
   const nextId = useRef(0);
 
   function record(direction, text) {
@@ -28,11 +32,18 @@ function App() {
 
   useEffect(() => {
     function receive(event) {
-      const { type, message, percent, notifications } = JSON.parse(event.data);
+      const { type, message, percent, notifications, nativeQr, value } = JSON.parse(event.data);
       switch (type) {
         case "ready":
           setConnected(true);
           setNotificationsSupported(notifications === true);
+          setNativeQrSupported(nativeQr === true);
+          break;
+        case "nativeQrResult":
+          setNativeScan(value === null
+            ? { source: "Cámara nativa", error: "Escaneo cancelado o cámara no disponible." }
+            : { source: "Cámara nativa", value });
+          record("Kotlin → React", value === null ? "Escaneo nativo sin resultado" : "Código QR recibido");
           break;
         case "notificationResult":
           setNotificationPending(false);
@@ -96,8 +107,16 @@ function App() {
     requestAndroid("showNotification");
   }
 
+  function scanNative() {
+    if (!nativeQrSupported || nativeScan?.pending) return;
+    setNativeScan({ pending: true });
+    record("React → Kotlin", "Abrir lector QR nativo");
+    requestAndroid("scanNativeQr");
+  }
+
   return (
-    <main>
+    <>
+    <main hidden={storeOpen}>
       <h1>{connected ? "React dentro del WebView" : "Análisis del puente React y Android"}</h1>
       {!connected && (
         <p className="notice">
@@ -158,7 +177,19 @@ function App() {
           )}
         </div>
       </section>
+      <section className="card action-row" aria-label="Tienda de demostración">
+        <div><h2>Prueba el puente en una tienda</h2><p className="store-entry-copy">Explora el catálogo y compara las dos cámaras.</p></div>
+        <button type="button" onClick={() => { setStoreOpen(true); window.scrollTo(0, 0); }}>Ir a la tienda</button>
+      </section>
     </main>
+    <DeliveryStore
+      active={storeOpen}
+      onBack={() => { setStoreOpen(false); window.scrollTo(0, 0); }}
+      nativeSupported={nativeQrSupported}
+      onNativeScan={scanNative}
+      nativeScan={nativeScan}
+    />
+    </>
   );
 }
 

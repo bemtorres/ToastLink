@@ -85,6 +85,8 @@ footer span { color: var(--accent); }
 .diagram { margin: 22px 0; }
 .diagram img { display: block; width: 100%; height: auto; border-radius: 8px; }
 .diagram figcaption { margin-top: 8px; color: var(--muted); font-size: 14px; }
+.diagram img[src$="qr-demo.svg"] { width: 152px; max-width: 100%; }
+.delivery-compare h4 { margin: 22px 0 8px; font-size: 17px; }
 
 @media (max-width: 660px) {
   .intro, dl div { grid-template-columns: minmax(0, 1fr); }

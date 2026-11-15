@@ -8,4 +8,5 @@
     <string name="notification_body">React envió esta notificación a Android.</string>
     <string name="notification_sent">Notificación enviada. Revisa el panel de Android.</string>
     <string name="notification_blocked">Activa las notificaciones de ToastLink en los ajustes de Android.</string>
+    <string name="scan_qr_prompt">Apunta al código QR del producto</string>
 </resources>

@@ -13,6 +13,8 @@ import android.os.Bundle
 import android.view.ViewGroup
 import android.webkit.WebMessage
 import android.webkit.WebMessagePort
+import android.webkit.PermissionRequest
+import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
@@ -27,6 +29,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import com.journeyapps.barcodescanner.ScanContract
+import com.journeyapps.barcodescanner.ScanOptions
+import com.journeyapps.barcodescanner.CaptureActivity
 import org.json.JSONObject
 import java.io.ByteArrayInputStream
 
@@ -35,10 +40,33 @@ private const val START_PAGE = "$WEB_ORIGIN/analisis/"
 private const val NOTIFICATION_CHANNEL = "toastlink_demo"
 private const val DEMO_NOTIFICATION_ID = 1
 
+class ProductQrActivity : CaptureActivity()
+
 class MainActivity : AppCompatActivity() {
     private lateinit var webView: WebView
     private lateinit var greetButton: Button
     private var port: WebMessagePort? = null
+    private var pendingWebCamera: PermissionRequest? = null
+    private var nativeScannerPort: WebMessagePort? = null
+    private val requestCameraPermission =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            val request = pendingWebCamera
+            pendingWebCamera = null
+            if (request != null) {
+                if (granted && canGrantWebCamera(request)) {
+                    request.grant(arrayOf(PermissionRequest.RESOURCE_VIDEO_CAPTURE))
+                } else {
+                    request.deny()
+                }
+            }
+        }
+    private val qrScanner = registerForActivityResult(ScanContract()) { result ->
+        val requestingPort = nativeScannerPort
+        nativeScannerPort = null
+        if (requestingPort != null && requestingPort === port) {
+            sendToReact("nativeQrResult", "value", result.contents ?: JSONObject.NULL)
+        }
+    }
     private var permissionRequestPort: WebMessagePort? = null
     private val requestNotificationPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -80,6 +108,7 @@ class MainActivity : AppCompatActivity() {
             mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
         }
         webView.webViewClient = DemoClient()
+        webView.webChromeClient = CameraChromeClient()
         webView.loadUrl(START_PAGE)
     }
 
@@ -93,6 +122,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun disconnect() {
+        pendingWebCamera?.deny()
+        pendingWebCamera = null
         greetButton.isEnabled = false
         port?.close()
         port = null
@@ -117,12 +148,13 @@ class MainActivity : AppCompatActivity() {
         val type = request.optString("type")
         if (type == "ready") {
             greetButton.isEnabled = true
-            sendToReact("ready", "notifications", true)
+            port?.postMessage(WebMessage("""{"type":"ready","notifications":true,"nativeQr":true}"""))
             return
         }
         if (!greetButton.isEnabled) return
 
         when (type) {
+            "scanNativeQr" -> openNativeScanner()
             "showNotification" -> showDemoNotification()
             "showToast" -> {
                 val text = request.optString("message").trim().take(120)
@@ -136,6 +168,47 @@ class MainActivity : AppCompatActivity() {
                     ?.takeIf { it in 0..100 }
                 sendToReact("battery", "percent", percent ?: JSONObject.NULL)
             }
+        }
+    }
+
+    private fun openNativeScanner() {
+        if (nativeScannerPort != null) return
+        if (!packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)) {
+            sendToReact("nativeQrResult", "value", JSONObject.NULL)
+            return
+        }
+        nativeScannerPort = port
+        qrScanner.launch(
+            ScanOptions()
+                .setCaptureActivity(ProductQrActivity::class.java)
+                .setDesiredBarcodeFormats(ScanOptions.QR_CODE)
+                .setPrompt(getString(R.string.scan_qr_prompt))
+                .setBeepEnabled(false)
+        )
+    }
+
+    private fun canGrantWebCamera(request: PermissionRequest): Boolean {
+        val origin = Uri.parse(WEB_ORIGIN)
+        return request.origin.scheme == origin.scheme &&
+            request.origin.encodedAuthority == origin.encodedAuthority &&
+            webView.url == START_PAGE &&
+            request.resources.contentEquals(arrayOf(PermissionRequest.RESOURCE_VIDEO_CAPTURE))
+    }
+
+    private inner class CameraChromeClient : WebChromeClient() {
+        override fun onPermissionRequest(request: PermissionRequest) {
+            if (pendingWebCamera != null || !canGrantWebCamera(request)) {
+                request.deny()
+            } else if (checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                request.grant(arrayOf(PermissionRequest.RESOURCE_VIDEO_CAPTURE))
+            } else {
+                pendingWebCamera = request
+                requestCameraPermission.launch(Manifest.permission.CAMERA)
+            }
+        }
+
+        override fun onPermissionRequestCanceled(request: PermissionRequest) {
+            if (pendingWebCamera === request) pendingWebCamera = null
         }
     }
 
@@ -225,7 +298,8 @@ class MainActivity : AppCompatActivity() {
         override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
             val url = request.url.toString()
             return when (url) {
-                START_PAGE, "$WEB_ORIGIN/analisis/main.css", "$WEB_ORIGIN/analisis/main.js" -> null
+                START_PAGE, "$WEB_ORIGIN/analisis/main.css", "$WEB_ORIGIN/analisis/main.js",
+                "$WEB_ORIGIN/analisis/qr-demo.svg" -> null
                 else -> WebResourceResponse(
                     "text/plain", "UTF-8", 404, "Not Found", emptyMap(), ByteArrayInputStream(byteArrayOf())
                 )
